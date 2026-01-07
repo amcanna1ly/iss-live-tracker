@@ -151,10 +151,10 @@ iss-live-tracker/
 ├── Dockerfile              # Container image definition
 ├── docker-compose.yml      # Optional local runner
 ├── templates/
-   └── index.html          # Main dashboard template
+│   └── index.html          # Main dashboard template
 ├── static/
-   ├── app.css             # Dashboard styling (dark theme)
-   └── app.js              # Frontend logic and map handling
+│   ├── app.css             # Dashboard styling (dark theme)
+│   └── app.js              # Frontend logic and map handling
 └── docs/
     └── screenshots/        # Images used in README
 
