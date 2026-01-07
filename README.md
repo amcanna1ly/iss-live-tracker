@@ -145,18 +145,7 @@ http://127.0.0.1:5000/
 
 ## Project Structure
 
-iss-live-tracker/
-├── iss_web.py              # Flask application entrypoint
-├── requirements.txt        # Python dependencies
-├── Dockerfile              # Container image definition
-├── docker-compose.yml      # Optional local runner
-├── templates/
-│   └── index.html          # Main dashboard template
-├── static/
-│   ├── app.css             # Dashboard styling (dark theme)
-│   └── app.js              # Frontend logic and map handling
-└── docs/
-    └── screenshots/        # Images used in README
+[placeholder]
 
 ---
 
