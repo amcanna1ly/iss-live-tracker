@@ -1,8 +1,7 @@
 # ISS Live Tracker
 
 ![Docker Pulls](https://img.shields.io/docker/pulls/amcannally/iss-tracker)
-![License](https://img.shields.io/github/license/amcanna1ly/iss-live-tracker)
-
+[![License](https://img.shields.io/github/license/amcanna1ly/iss-live-tracker)](LICENSE)
 
 A lightweight, Dockerized web dashboard for live International Space Station tracking, ground tracks, and observer-based pass visibility predictions.
 
