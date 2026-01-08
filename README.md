@@ -38,6 +38,14 @@ This project provides a self-hosted web interface that shows the ISS’s real-ti
 
 ---
 
+## Screenshots
+
+![ISS Live Tracker Dashboard](docs/screenshots/ISS-Live-Tracker_DashboardView.jpg)
+
+![ISS Live Tracker Dashboard](docs/screenshots/ISS-Live-Tracker_NextPassTable.jpg)
+
+---
+
 ## Quick Start (Docker – Recommended)
 
 ### Pull the image
