@@ -156,17 +156,21 @@ http://127.0.0.1:5000/
 
 ## Project Structure
 
-iss-live-tracker/
-├── docker-compose.yml
-├── Dockerfile
-├── iss_web.py
-├── README.md
-├── requirements.txt
-├── static/
-│   ├── app.css
-│   └── app.js
-└── templates/
-    └── index.html
+    iss-live-tracker/
+    ├── Dockerfile
+    ├── LICENSE
+    ├── README.md
+    ├── docker-compose.yml
+    ├── docs/
+    │   ├── ISS-Live-Tracker_DashboardView.jpg
+    │   └── ISS-Live-Tracker_NextPassTable.jpg
+    ├── iss_web.py
+    ├── requirements.txt
+    ├── static/
+    │   ├── app.css
+    │   └── app.js
+    └── templates/
+        └── index.html
 
 ---
 
