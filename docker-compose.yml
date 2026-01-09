@@ -7,3 +7,9 @@ services:
       - "5000:5000"
     environment:
       - TZ=America/Chicago
+    volumes:
+      - tle_cache:/app/tle_cache
+
+volumes:
+  tle_cache:
+

@@ -1,0 +1,263 @@
+/* global L */
+(() => {
+  const els = (id) => document.getElementById(id);
+
+  const state = {
+    refreshSec: 5,
+    followIss: true,
+    showGroundTrack: true,
+    iss: null,
+    tg: null,
+    markers: {},
+    tracks: {},
+    map: null,
+    timer: null,
+  };
+
+  function fmtLatLon(lat, lon) {
+    if (lat == null || lon == null) return "-";
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  }
+  function fmtKm(x) { return (x == null) ? "-" : `${x.toFixed(1)} km`; }
+  function fmtKms(x) { return (x == null) ? "-" : `${x.toFixed(3)} km/s`; }
+
+  function isoToAgeLabel(iso) {
+    if (!iso) return "-";
+    const t = Date.parse(iso);
+    if (Number.isNaN(t)) return "-";
+    const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (sec < 60) return `${sec}s`;
+    const m = Math.floor(sec / 60);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    return `${h}h`;
+  }
+
+  function getObserverParams() {
+    return {
+      lat: parseFloat(els("lat").value),
+      lon: parseFloat(els("lon").value),
+      elev: parseFloat(els("elev").value),
+      min_el: parseFloat(els("min_el").value),
+      hours: parseInt(els("hours").value, 10),
+      limit: parseInt(els("limit").value, 10),
+      tz_offset: els("tz_offset").value.trim(),
+    };
+  }
+
+  function setRefresh(sec) {
+    state.refreshSec = sec;
+    els("refreshLabel").textContent = String(sec);
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(refreshAll, state.refreshSec * 1000);
+  }
+
+  function initMap() {
+    state.map = L.map("map", { worldCopyJump: true }).setView([20, 0], 2);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 7,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(state.map);
+
+    // Simple colored circle markers (avoid external icon assets)
+    const issIcon = L.divIcon({
+      className: "sat-icon sat-icon--iss",
+      html: '<div class="sat-dot"></div><div class="sat-label">ISS</div>',
+      iconSize: [60, 24],
+      iconAnchor: [14, 12],
+    });
+
+    const tgIcon = L.divIcon({
+      className: "sat-icon sat-icon--tg",
+      html: '<div class="sat-dot"></div><div class="sat-label">TG</div>',
+      iconSize: [60, 24],
+      iconAnchor: [14, 12],
+    });
+
+    state.markers.iss = L.marker([0, 0], { icon: issIcon }).addTo(state.map);
+    state.markers.tiangong = L.marker([0, 0], { icon: tgIcon }).addTo(state.map);
+
+    state.tracks.iss = L.polyline([], { weight: 2, opacity: 0.9 }).addTo(state.map);
+    state.tracks.tiangong = L.polyline([], { weight: 2, opacity: 0.9, dashArray: "6 6" }).addTo(state.map);
+  }
+
+  async function fetchJson(url) {
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) {
+      const t = await r.text();
+      throw new Error(`${r.status} ${r.statusText}: ${t.slice(0, 200)}`);
+    }
+    return r.json();
+  }
+
+  function updateStateUI() {
+    const iss = state.iss;
+    const tg = state.tg;
+
+    els("utcNow").textContent = (iss && iss.utc) ? String(iss.utc) : (tg && tg.utc) ? String(tg.utc) : "-";
+    els("lastUpdate").textContent = new Date().toLocaleString();
+
+    els("issLatLon").textContent = iss ? fmtLatLon(iss.lat, iss.lon) : "-";
+    els("issAlt").textContent = iss ? fmtKm(iss.alt_km) : "-";
+    els("issSpeed").textContent = iss ? fmtKms(iss.speed_km_s) : "-";
+
+    els("tgLatLon").textContent = tg ? fmtLatLon(tg.lat, tg.lon) : "-";
+    els("tgAlt").textContent = tg ? fmtKm(tg.alt_km) : "-";
+    els("tgSpeed").textContent = tg ? fmtKms(tg.speed_km_s) : "-";
+
+    els("tleAgeIss").textContent = iss && iss.tle_fetched_utc ? isoToAgeLabel(iss.tle_fetched_utc) : "-";
+    els("tleAgeTg").textContent = tg && tg.tle_fetched_utc ? isoToAgeLabel(tg.tle_fetched_utc) : "-";
+  }
+
+  function updateMapMarkers() {
+    const iss = state.iss;
+    const tg = state.tg;
+    if (!state.map) return;
+
+    if (iss && iss.lat != null && iss.lon != null) {
+      state.markers.iss.setLatLng([iss.lat, iss.lon]);
+      if (state.followIss) state.map.panTo([iss.lat, iss.lon], { animate: true, duration: 0.25 });
+    }
+
+    if (tg && tg.lat != null && tg.lon != null) {
+      state.markers.tiangong.setLatLng([tg.lat, tg.lon]);
+    }
+  }
+
+  function setTrackVisible(visible) {
+    const op = visible ? 0.9 : 0.0;
+    state.tracks.iss.setStyle({ opacity: op });
+    state.tracks.tiangong.setStyle({ opacity: op });
+  }
+
+  async function refreshState() {
+    const data = await fetchJson("/api/state");
+
+    // Expected: { satellites: [ {key, lat, lon, alt_km, speed_km_s, utc, tle_fetched_utc, ...}, ... ], errors: [...] }
+    const sats = Array.isArray(data.satellites) ? data.satellites : [];
+
+    state.iss = sats.find((s) => s.key === "iss") || null;
+    state.tg = sats.find((s) => s.key === "tiangong") || null;
+
+    updateStateUI();
+    updateMapMarkers();
+  }
+
+  async function refreshTrack() {
+    // If your backend supports per-sat tracks, change this to call /api/track?sat=iss and /api/track?sat=tiangong
+    // For now, we draw ISS as solid and Tiangong as dashed using the same endpoint if it returns both.
+    const r = await fetch("/api/track?minutes=90&step=60", { cache: "no-store" });
+    if (!r.ok) return;
+
+    const data = await r.json();
+
+    // Support either:
+    // A) { iss: [[lat,lon],...], tiangong: [[lat,lon],...] }
+    // B) { points: [[lat,lon],...] } (ISS only)
+    if (data.iss && Array.isArray(data.iss)) {
+      state.tracks.iss.setLatLngs(data.iss);
+    }
+    if (data.tiangong && Array.isArray(data.tiangong)) {
+      state.tracks.tiangong.setLatLngs(data.tiangong);
+    }
+    if (data.points && Array.isArray(data.points)) {
+      state.tracks.iss.setLatLngs(data.points);
+      // Tiangong track empty unless backend provides it
+      state.tracks.tiangong.setLatLngs([]);
+    }
+  }
+
+  function renderPassesTable(rows) {
+    const tbody = els("passesTable").querySelector("tbody");
+    tbody.innerHTML = "";
+
+    if (!rows || !rows.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="6" class="muted">No passes found.</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const row of rows) {
+      const tr = document.createElement("tr");
+      const vis = row.visible ? "Yes" : "No";
+      const pill = row.visible
+        ? `<span class="vpill vpill--yes">Yes</span>`
+        : `<span class="vpill vpill--no">No</span>`;
+
+      tr.innerHTML = `
+        <td class="mono">${row.index ?? ""}</td>
+        <td class="mono">${row.rise_local ?? row.rise_utc ?? "-"}</td>
+        <td class="mono">${row.max_local ?? row.max_utc ?? "-"}</td>
+        <td class="mono">${row.set_local ?? row.set_utc ?? "-"}</td>
+        <td class="mono">${row.duration ?? "-"}</td>
+        <td>${pill}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function refreshPasses() {
+    const p = getObserverParams();
+    const qs = new URLSearchParams({
+      lat: String(p.lat),
+      lon: String(p.lon),
+      elev: String(p.elev),
+      min_el: String(p.min_el),
+      hours: String(p.hours),
+      limit: String(p.limit),
+      tz_offset: p.tz_offset,
+    });
+    const data = await fetchJson(`/api/passes?${qs.toString()}`);
+    renderPassesTable(data.passes || []);
+    els("passesFooter").textContent = data.note || "";
+  }
+
+  async function refreshAll() {
+    try {
+      await refreshState();
+      await Promise.allSettled([refreshTrack(), refreshPasses()]);
+    } catch (e) {
+      // Leave last good UI; log for debugging
+      console.error(e);
+    }
+  }
+
+  function hookUI() {
+    els("followIss").addEventListener("change", (e) => {
+      state.followIss = e.target.checked;
+    });
+
+    els("showGroundTrack").addEventListener("change", (e) => {
+      state.showGroundTrack = e.target.checked;
+      setTrackVisible(state.showGroundTrack);
+    });
+
+    els("btnRefreshNow").addEventListener("click", () => refreshAll());
+
+    els("observerForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const sec = parseInt(els("refresh_sec").value, 10);
+      if (!Number.isNaN(sec) && sec >= 2 && sec <= 120) setRefresh(sec);
+      refreshAll();
+    });
+
+    els("btnUseMyLocation").addEventListener("click", () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        els("lat").value = pos.coords.latitude.toFixed(4);
+        els("lon").value = pos.coords.longitude.toFixed(4);
+        if (pos.coords.altitude != null) els("elev").value = String(Math.round(pos.coords.altitude));
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initMap();
+    hookUI();
+    setRefresh(parseInt(els("refresh_sec").value, 10) || 5);
+    setTrackVisible(true);
+    refreshAll();
+  });
+})();

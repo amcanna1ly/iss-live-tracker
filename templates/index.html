@@ -1,194 +1,201 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ISS Live Tracker</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ISS Live Tracker</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
-  </head>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
 
-  <body>
-    <header class="topbar">
-      <div class="topbar__title">
-        <div class="topbar__headline">ISS Live Tracker</div>
-        <div class="topbar__subhead">Live position, map, ground track, and pass predictions</div>
+<body>
+  <header class="topbar">
+    <div class="topbar__title">
+      <div class="topbar__headline">ISS Live Tracker</div>
+      <div class="topbar__subhead">Live position, map, ground track, and pass predictions</div>
+    </div>
+
+    <div class="topbar__status">
+      <div class="pill">Refresh <span id="refreshLabel">5</span>s</div>
+      <div class="pill pill--muted">TLE ISS: <span id="tleAgeISS">-</span></div>
+      <div class="pill pill--muted">TLE Tiangong: <span id="tleAgeTiangong">-</span></div>
+      <button class="btn btn--ghost" id="btnRefreshNow" type="button">Refresh now</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="grid">
+      <div class="card card--span2">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Live State</div>
+            <div class="card__subtitle muted">ISS + Tiangong</div>
+          </div>
+
+          <div class="badges">
+            <span class="badge" id="badgeIss">ISS</span>
+            <span class="badge" id="badgeTg">Tiangong</span>
+          </div>
+        </div>
+
+        <div class="kv">
+          <div class="kv__item">
+            <div class="kv__k">ISS Lat / Lon</div>
+            <div class="kv__v mono" id="issLatLon">-</div>
+          </div>
+          <div class="kv__item">
+            <div class="kv__k">ISS Altitude</div>
+            <div class="kv__v mono" id="issAlt">-</div>
+          </div>
+          <div class="kv__item">
+            <div class="kv__k">ISS Speed</div>
+            <div class="kv__v mono" id="issSpeed">-</div>
+          </div>
+          <div class="kv__item">
+            <div class="kv__k">Last Update</div>
+            <div class="kv__v mono" id="utcValue">-</div>
+          </div>
+
+          <div class="kv__item">
+            <div class="kv__k">Tiangong Lat / Lon</div>
+            <div class="kv__v mono" id="tgLatLon">-</div>
+          </div>
+          <div class="kv__item">
+            <div class="kv__k">Tiangong Altitude</div>
+            <div class="kv__v mono" id="tgAlt">-</div>
+          </div>
+          <div class="kv__item">
+            <div class="kv__k">Tiangong Speed</div>
+            <div class="kv__v mono" id="tgSpeed">-</div>
+          </div>
+          <div class="kv__item">
+            <div class="kv__k">Last Update</div>
+            <div class="kv__v mono" id="lastUpdate">-</div>
+          </div>
+        </div>
+
+        <div class="mapwrap" style="margin-top:12px;">
+          <div id="map"></div>
+
+          <div class="mapbar">
+            <label class="switch">
+              <input type="checkbox" id="followIss" checked />
+              <span class="switch__label">Follow ISS</span>
+            </label>
+
+            <label class="switch">
+              <input type="checkbox" id="showGroundTrack" checked />
+              <span class="switch__label">Show ground tracks</span>
+            </label>
+
+            <div class="pill pill--muted">
+              <span class="mono">Legend:</span>
+              <span class="mono" style="margin-left:10px;">ISS = cyan</span>
+              <span class="mono" style="margin-left:10px;">Tiangong = amber</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="topbar__status">
-        <div class="pill">Refresh <span id="refreshLabel">5</span>s</div>
-        <div class="pill pill--muted">TLE <span id="tleAge">-</span></div>
+      <div class="card">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Observer Settings</div>
+            <div class="card__subtitle muted">Used for pass predictions (ISS)</div>
+          </div>
+        </div>
+
+        <form class="form" id="observerForm">
+          <div class="form__actions form__actions--top">
+            <button class="btn" id="useMyLocation" type="button">Use my location</button>
+          </div>
+
+          <div class="form__row">
+            <label for="lat">Latitude</label>
+            <input id="lat" name="lat" type="number" step="0.0001" value="33.5207" />
+          </div>
+
+          <div class="form__row">
+            <label for="lon">Longitude</label>
+            <input id="lon" name="lon" type="number" step="0.0001" value="-86.8025" />
+          </div>
+
+          <div class="form__row">
+            <label for="elev">Elevation (m)</label>
+            <input id="elev" name="elev" type="number" step="1" value="180" />
+          </div>
+
+          <div class="form__row">
+            <label for="min_el">Min elev (deg)</label>
+            <input id="min_el" name="min_el" type="number" step="1" value="10" />
+          </div>
+
+          <div class="form__row">
+            <label for="hours">Hours ahead</label>
+            <input id="hours" name="hours" type="number" step="1" value="48" />
+          </div>
+
+          <div class="form__row">
+            <label for="limit">Passes</label>
+            <input id="limit" name="limit" type="number" step="1" value="5" />
+          </div>
+
+          <div class="form__row">
+            <label for="tz_offset">TZ offset</label>
+            <input id="tz_offset" name="tz_offset" type="text" value="-06:00" />
+          </div>
+
+          <div class="form__row">
+            <label for="refresh_sec">Refresh (sec)</label>
+            <input id="refresh_sec" name="refresh_sec" type="number" step="1" value="5" />
+          </div>
+
+          <div class="form__actions">
+            <button class="btn" id="btnUpdate" type="submit">Update</button>
+          </div>
+
+          <div class="help muted">
+            Endpoints: <span class="mono">/api/state</span>, <span class="mono">/api/passes</span>, <span class="mono">/api/track</span>
+          </div>
+        </form>
       </div>
-    </header>
 
-    <main class="container">
-      <section class="grid">
-        <!-- Live + Map -->
-        <div class="card card--span2">
-          <div class="card__header">
-            <div>
-              <div class="card__title">Live ISS State</div>
-              <div class="card__subtitle" id="issName">Loading...</div>
-            </div>
-            <div class="badges">
-              <div class="badge" id="badgeAlt">Alt -</div>
-              <div class="badge" id="badgeSpeed">Speed -</div>
-            </div>
-          </div>
-
-          <div class="live">
-            <div class="kv">
-              <div class="kv__item">
-                <div class="kv__k">Lat / Lon</div>
-                <div class="kv__v" id="latlon">-</div>
-              </div>
-              <div class="kv__item">
-                <div class="kv__k">Altitude</div>
-                <div class="kv__v" id="alt">-</div>
-              </div>
-              <div class="kv__item">
-                <div class="kv__k">Speed</div>
-                <div class="kv__v" id="speed">-</div>
-              </div>
-              <div class="kv__item">
-                <div class="kv__k">UTC</div>
-                <div class="kv__v mono" id="utcNow">-</div>
-              </div>
-            </div>
-
-            <div class="mapwrap">
-              <div id="map"></div>
-              <div class="mapbar">
-                <label class="switch">
-                  <input type="checkbox" id="followToggle" checked />
-                  <span class="switch__label">Follow ISS</span>
-                </label>
-
-                <label class="switch">
-                  <input type="checkbox" id="trackToggle" checked />
-                  <span class="switch__label">Show ground track</span>
-                </label>
-
-                <div class="muted">Past trail and predicted ground track</div>
-              </div>
-            </div>
+      <div class="card card--span3">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Next Passes</div>
+            <div class="card__subtitle muted">Visibility-aware predictions (ISS)</div>
           </div>
         </div>
 
-        <!-- Settings -->
-        <div class="card">
-          <div class="card__header">
-            <div>
-              <div class="card__title">Observer Settings</div>
-              <div class="card__subtitle">Used for pass predictions</div>
-            </div>
-          </div>
+        <!-- Optional status line that app.js can populate (Loading..., error, etc.) -->
+        <div id="passesStatus" class="muted" style="margin: 6px 2px 0 2px;"></div>
 
-          <div class="form">
-            <div class="form__actions form__actions--top">
-              <button class="btn btn--ghost" id="geoBtn" type="button">Use my location</button>
-            </div>
-
-            <div class="form__row">
-              <label for="lat">Latitude</label>
-              <input id="lat" type="number" step="0.0001" value="33.5207" />
-            </div>
-
-            <div class="form__row">
-              <label for="lon">Longitude</label>
-              <input id="lon" type="number" step="0.0001" value="-86.8025" />
-            </div>
-
-            <div class="form__row">
-              <label for="elev">Elevation (m)</label>
-              <input id="elev" type="number" step="1" value="180" />
-            </div>
-
-            <div class="form__row">
-              <label for="minEl">Min elev (deg)</label>
-              <input id="minEl" type="number" step="1" value="10" />
-            </div>
-
-            <div class="form__row">
-              <label for="hours">Hours ahead</label>
-              <input id="hours" type="number" step="1" value="48" />
-            </div>
-
-            <div class="form__row">
-              <label for="limit">Passes</label>
-              <input id="limit" type="number" step="1" value="5" />
-            </div>
-
-            <div class="form__row">
-              <label for="tzOffset">TZ offset</label>
-              <input id="tzOffset" type="text" value="-06:00" />
-            </div>
-
-            <div class="form__row">
-              <label for="refreshSec">Refresh (sec)</label>
-              <input id="refreshSec" type="number" step="1" value="5" />
-            </div>
-
-            <div class="form__row">
-              <label for="trackMinutes">Track (min)</label>
-              <input id="trackMinutes" type="number" step="1" value="90" />
-            </div>
-
-            <div class="form__row">
-              <label for="trackStep">Track step (sec)</label>
-              <input id="trackStep" type="number" step="1" value="60" />
-            </div>
-
-            <div class="form__actions">
-              <button class="btn" id="updateBtn" type="button">Update</button>
-              <button class="btn btn--ghost" id="resetBtn" type="button">Reset trail</button>
-            </div>
-
-            <div class="help muted">
-              Endpoints:
-              <span class="mono">/api/state</span>,
-              <span class="mono">/api/passes</span>,
-              <span class="mono">/api/track</span>
-            </div>
-          </div>
+        <div class="tablewrap">
+          <table class="table" id="passesTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Rise</th>
+                <th>Max</th>
+                <th>Set</th>
+                <th>Duration</th>
+                <th>Visible</th>
+              </tr>
+            </thead>
+            <tbody id="passesTbody">
+              <tr><td colspan="6" class="muted">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- Passes -->
-        <div class="card card--span3">
-          <div class="card__header">
-            <div>
-              <div class="card__title">Next Passes</div>
-              <div class="card__subtitle">Visibility-aware predictions</div>
-            </div>
-          </div>
+        <div class="footer muted" id="passesFooter"></div>
+      </div>
+    </section>
+  </main>
 
-          <div class="tablewrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Rise</th>
-                  <th>Max</th>
-                  <th>Set</th>
-                  <th>Duration</th>
-                  <th>Visible</th>
-                </tr>
-              </thead>
-              <tbody id="passesBody">
-                <tr>
-                  <td colspan="6" class="muted">Loading...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="footer muted" id="errorLine"></div>
-        </div>
-      </section>
-    </main>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
-  </body>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/app.js"></script>
+</body>
 </html>
