@@ -64,7 +64,7 @@ This elevates the project from an ISS-only viewer into a reusable satellite trac
 ### Pull the image
 
 ```bash
-docker pull amcannally/iss-live-tracker:latest
+docker pull amcannally/iss-live-tracker:2.0
 ```
 
 ### Run the container
@@ -90,7 +90,7 @@ http://<host-ip>:5000/
 ```yaml
 services:
   iss-live-tracker:
-    image: amcannally/iss-live-tracker:latest
+    image: amcannally/iss-live-tracker:2.0
     container_name: iss-live-tracker
     restart: unless-stopped
     ports:
