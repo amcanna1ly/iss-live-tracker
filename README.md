@@ -3,41 +3,51 @@
 ![Docker Pulls](https://img.shields.io/docker/pulls/amcannally/iss-tracker)
 [![License](https://img.shields.io/github/license/amcanna1ly/iss-live-tracker)](LICENSE)
 
-A lightweight, Dockerized web dashboard for live International Space Station tracking, ground tracks, and observer-based pass visibility predictions.
+A lightweight, Dockerized web dashboard for the **International Space Station (ISS)** and **China's Tiangong (CSS)** which provides live tracking, ground tracks, and observer-based pass visibility predictions (ISS only).
 
 This project provides a self-hosted web interface that shows the ISS’s real-time position, predicted ground track, and upcoming passes from a chosen observer location, including a visibility heuristic based on lighting conditions.
 
 ---
 
+## Why Tiangong?
+
+Tiangong (TG) is included to demonstrate multi-satellite LEO tracking and comparative orbital visualization.
+
+This elevates the project from an ISS-only viewer into a reusable satellite tracking framework.
+
+---
+
 ## Features
 
-- **Live ISS position**
+- **Live satellite state (ISS + Tiangong)**
   - Latitude / longitude
   - Altitude and orbital speed
   - Auto-refreshing state display
+  - TLE age indicators
 
 - **Interactive world map**
-  - Live ISS marker
-  - Recent orbital trail
-  - Forward ground-track projection (configurable)
-  - Follow/unfollow ISS toggle
+  - Live markers for ISS and Tiangong
+  - Forward ground-track projections
+    - ISS: solid cyan line
+    - Tiangong: dashed amber line
+  - Follow ISS toggle
+  - Optional ground track visibility
 
-- **Pass predictions**
+- **Pass predictions (ISS only)**
   - Observer-based rise, max, and set times
-  - Maximum elevation and pass duration
-  - Visibility estimation:
-    - Observer in darkness (civil twilight or darker)
-    - ISS sunlit at peak elevation
+  - Duration formatted as minutes and seconds
+  - Visibility estimation based on observer darkness and satellite illumination
 
 - **Modern dashboard UI**
-  - Dark theme optimized for low-light viewing
-  - Responsive layout (desktop, tablet, mobile)
-  - No external JS frameworks
+  - Dark theme optimized for night viewing
+  - Responsive layout
+  - Vanilla JS + Leaflet (no frameworks)
 
 - **Docker-first deployment**
-  - Runs cleanly on Raspberry Pi (ARM64) or x86_64
-  - All dependencies isolated
-  - Ephemeris data preloaded for fast startup
+  - Runs on Raspberry Pi (ARM64) and x86_64
+  - Stateless container
+  - Ephemeris data bundled for fast startup
+
 
 ---
 
@@ -140,9 +150,17 @@ http://127.0.0.1:5000/
 
 ## API Endpoints
 
-- `GET /api/state` – current ISS position and orbital state
-- `GET /api/passes` – upcoming observer-based passes
-- `GET /api/track` – predicted ground track points
+### GET /api/state
+
+Returns the current orbital state for all tracked satellites.
+
+### GET /api/track
+
+Returns predicted forward ground tracks for ISS and Tiangong.
+
+### GET /api/passes
+
+Returns observer-based ISS pass predictions.
 
 ---
 
